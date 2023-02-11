@@ -1,0 +1,22 @@
+version: '3.9'
+services:
+  app:
+    build: .
+    image: 'laravelapp'
+    ports:
+      - 8080:80
+    volumes:
+      - laravel-log:/var/www/html
+  db:
+    image: mysql
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: 'wande_db'
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - database-log:/var/lib/mysql
+volumes:
+  laravel-log:
+  database-log:
