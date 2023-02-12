@@ -6,17 +6,14 @@ services:
     ports:
       - 8080:80
     volumes:
-      - laravel-log:/var/www/html
+      - ./app_logs/:/var/log/apache2
   db:
     image: mysql
     restart: always
     ports:
       - "3306:3306"
     environment:
-      MYSQL_DATABASE: 'wande_db'
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
     volumes:
-      - database-log:/var/lib/mysql
-volumes:
-  laravel-log:
-  database-log:
+      - ./database-logs:/var/lib/mysql/

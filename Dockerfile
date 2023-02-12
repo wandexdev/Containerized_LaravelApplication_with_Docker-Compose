@@ -27,7 +27,7 @@ RUN apt-get update && \
 
 RUN php -v
 
-COPY laravelhost.conf /etc/apache2/sites-available/laravelhost.conf
+COPY laravelhost.conf /etc/apache2/sites-available/
 
 RUN a2enmod rewrite
 RUN a2ensite laravelhost.conf
