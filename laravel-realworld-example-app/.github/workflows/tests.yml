@@ -1,0 +1,103 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  schedule:
+    - cron: '0 0 1 * *'
+
+jobs:
+  tests:
+    name: PHP ${{ matrix.php-version }}
+    runs-on: ${{ matrix.operating-system }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system: [ 'ubuntu-latest' ]
+        php-version: [ '8.0', '8.1' ]
+
+    services:
+      pgsql:
+        image: postgres:alpine
+        env:
+          POSTGRES_DB: laravel-realworld
+          POSTGRES_USER: username
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 3
+
+    env:
+      php-extensions: pgsql, redis
+      php-extensions-key: cache-v1 # change to clear the extension cache.
+      DB_CONNECTION: pgsql
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_DATABASE: laravel-realworld
+      DB_USERNAME: username
+      DB_PASSWORD: password
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup PHP extensions cache environment
+        id: extcache
+        uses: shivammathur/cache-extensions@v1
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: ${{ env.php-extensions }}
+          key: ${{ env.php-extensions-key }}
+
+      - name: Cache PHP extensions
+        uses: actions/cache@v3.0.3
+        with:
+          path: ${{ steps.extcache.outputs.dir }}
+          key: ${{ steps.extcache.outputs.key }}
+          restore-keys: ${{ steps.extcache.outputs.key }}
+
+      - name: Setup PHP, with composer and extensions
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: ${{ env.php-extensions }}
+          tools: cs2pr
+          coverage: xdebug
+
+      - name: Setup problem matchers for PHP and PHPUnit
+        run: |
+          echo "::add-matcher::${{ runner.tool_cache }}/php.json"
+          echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
+
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "::set-output name=dir::$(composer config cache-files-dir)"
+
+      - name: Cache composer dependencies
+        uses: actions/cache@v3.0.3
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install composer dependencies
+        run: composer create-project --no-progress --prefer-dist
+
+      - name: Run migrations
+        run: php artisan migrate -v --seed
+
+      - name: Test with PHPUnit
+        run: php artisan test --parallel --coverage-clover coverage.xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        if: matrix.php-version == '8.1'
+        with:
+          files: ./coverage.xml
