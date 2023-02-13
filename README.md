@@ -1,3 +1,5 @@
+![laravel application Image](images/laravel.png)
+
 ## Description
 * I created a docker Image of the real world laravel application pieced together in [this](https://github.com/f1amy/laravel-realworld-example-app) repository. 
 * It is the same laravel app whose configuration management was done by ANSIBLE last year after manually installing and deploying it in this [repository]()
